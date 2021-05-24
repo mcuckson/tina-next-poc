@@ -10,8 +10,8 @@ export default function Site(props) {
 
 
     const github = new GithubClient({
-      proxy: '/api/proxy-github',
-      authCallbackRoute: '/api/create-github-access-token',
+      proxy: 'http://localhost:3001/api/proxy-github',
+      authCallbackRoute: 'http://localhost:3001/api/create-github-access-token',
       clientId: process.env.GITHUB_CLIENT_ID,
       baseRepoFullName: process.env.REPO_FULL_NAME, // e.g: tinacms/tinacms.org,
       baseBranch: process.env.BASE_BRANCH, // e.g. 'master' or 'main' on newer repos
@@ -35,7 +35,7 @@ export default function Site(props) {
       /**
        * 4. Use the Sidebar and Toolbar
        */
-      sidebar: props.pageProps.preview,
+      sidebar: false,
       toolbar: props.pageProps.preview,
     })
 
@@ -76,7 +76,7 @@ const onLogin = async () => {
 }
 
 const onLogout = () => {
-  return fetch(`/api/reset-preview`).then(() => {
+  return fetch(`http://localhost:3001/api/reset-preview`).then(() => {
     window.location.reload()
   })
 }
