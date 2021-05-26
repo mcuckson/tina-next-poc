@@ -25,29 +25,17 @@ export default function Home({ preview, file }) {
   const [state, setState] = useState({});
   const [data, form] = useGithubMarkdownForm(file);
   if (!preview && !state.data) {
-    const url =
-      "https://x68jj3oe7e.execute-api.eu-west-2.amazonaws.com/test/gitsynctest/README.md";
+    const url = "http://localhost:5001/README.md";
+    /* "https://x68jj3oe7e.execute-api.eu-west-2.amazonaws.com/test/gitsynctest/README.md"; */
     const head = { "x-api-key": "0fQZGotbb72kCoDBJuDxI2h86cPdybzs4zmcU4hz" };
 
     const fetcher = fetch(url, { method: "GET", headers: head });
-    console.log("in");
     fetcher
       .then((x) => x.text())
       .then((y) => {
-        /* setState({ data: y }); */
-        data.markdownBody = y;
-        console.log(data);
+        setState({ data: y });
       });
   }
-  /* if (preview && !state.data) { */
-  /* console.log("it"); */
-  /* setState({ data: file.data.markdownBody }); */
-  /* } */
-
-  /* const formOptions = { */
-  /* label: "Home Page", */
-  /* fields: [{ name: "markdownBody", component: "markdown" }], */
-  /* }; */
   usePlugin(form);
   useGithubToolbarPlugins();
   console.log(data);
@@ -64,14 +52,23 @@ export default function Home({ preview, file }) {
         <h1>
           <InlineForm form={form}>
             <InlineWysiwyg name="markdownBody" format="markdown">
-              <Markdown>{data.markdownBody}</Markdown>
+              <Markdown>{preview ? data.markdownBody : state.data}</Markdown>
             </InlineWysiwyg>
           </InlineForm>
         </h1>
+        <button
+          onClick={() => {
+            setState({ data: " " });
+            cms.toggle();
+          }}
+        >
+          {cms.enabled ? "Exit Edit Mode" : "Edit This Site"}
+        </button>
       </main>
     </div>
   );
 }
+
 export async function getStaticProps({ preview, previewData }) {
   if (preview) {
     return getGithubPreviewProps({
@@ -84,8 +81,7 @@ export async function getStaticProps({ preview, previewData }) {
     props: {
       file: {
         data: {
-          /* frontmatter: { title: "[title placeholder]" }, */
-          markdownBody: "[text]",
+          markdownBody: "",
         },
       },
     },
