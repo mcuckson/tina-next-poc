@@ -20,17 +20,16 @@ import { InlineWysiwyg } from "react-tinacms-editor";
 import { InlineForm, InlineText } from "react-tinacms-inline";
 import useSWR from "swr";
 
-export default function Home({ preview, file }) {
+function GenericMd({ props }) {
+  const { preview, file, rurl } = props;
   const cms = useCMS();
   const [state, setState] = useState({});
   const [data, form] = useGithubMarkdownForm(file);
   if (!preview && !state.data) {
-    const url = "http://localhost:5001/README.md";
-    /* "https://x68jj3oe7e.execute-api.eu-west-2.amazonaws.com/test/gitsynctest/README.md"; */
+    const url = `http://localhost:5001/static?url=${rurl}`;
     const head = { "x-api-key": "0fQZGotbb72kCoDBJuDxI2h86cPdybzs4zmcU4hz" };
 
-    const fetcher = fetch(url, { method: "GET", headers: head });
-    fetcher
+    fetch(url, { method: "GET", headers: head })
       .then((x) => x.text())
       .then((y) => {
         setState({ data: y });
@@ -38,8 +37,18 @@ export default function Home({ preview, file }) {
   }
   usePlugin(form);
   useGithubToolbarPlugins();
-  console.log(data);
+  console.log(file);
+  return (
+    <InlineForm form={form}>
+      <InlineWysiwyg name="markdownBody" format="markdown">
+        <Markdown>{preview ? data.markdownBody : state.data}</Markdown>
+      </InlineWysiwyg>
+    </InlineForm>
+  );
+}
 
+export default function Home(props) {
+  const cms = useCMS();
   return (
     <div className={styles.container}>
       <Head>
@@ -50,15 +59,16 @@ export default function Home({ preview, file }) {
 
       <main className={styles.main}>
         <h1>
-          <InlineForm form={form}>
-            <InlineWysiwyg name="markdownBody" format="markdown">
-              <Markdown>{preview ? data.markdownBody : state.data}</Markdown>
-            </InlineWysiwyg>
-          </InlineForm>
+          <GenericMd
+            props={{
+              preview: props.preview,
+              file: props.files.first,
+              rurl: "first",
+            }}
+          />
         </h1>
         <button
           onClick={() => {
-            setState({ data: " " });
             cms.toggle();
           }}
         >
@@ -71,19 +81,30 @@ export default function Home({ preview, file }) {
 
 export async function getStaticProps({ preview, previewData }) {
   if (preview) {
-    return getGithubPreviewProps({
+    const first = await getGithubPreviewProps({
       ...previewData,
       fileRelativePath: "content/new.md",
       parse: parseMarkdown,
     });
+    const second = await getGithubPreviewProps({
+      ...previewData,
+      fileRelativePath: "content/other.md",
+      parse: parseMarkdown,
+    });
+    return {
+      props: {
+        preview: true,
+        files: { first: first.props.file, second: second.props.file },
+      },
+    };
   }
-  return {
-    props: {
-      file: {
-        data: {
-          markdownBody: "",
-        },
+
+  const stub = {
+    file: {
+      data: {
+        markdownBody: "",
       },
     },
   };
+  return { props: { preview: false, files: { first: stub, second: stub } } };
 }
