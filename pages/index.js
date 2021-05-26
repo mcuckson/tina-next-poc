@@ -1,25 +1,56 @@
-import Head from 'next/head'
-import Image from 'next/image'
-import styles from '../styles/Home.module.css'
-import { getGithubPreviewProps, parseJson } from 'next-tinacms-github'
-import { GetStaticProps } from 'next'
-import { usePlugin, useCMS } from 'tinacms'
-import { useGithubJsonForm, useGithubToolbarPlugins } from 'react-tinacms-github'
+import { useState } from "react";
+import Head from "next/head";
+import Image from "next/image";
+import styles from "../styles/Home.module.css";
+import {
+  getGithubPreviewProps,
+  parseJson,
+  parseMarkdown,
+} from "next-tinacms-github";
+import { GetStaticProps } from "next";
+import { usePlugin, useCMS } from "tinacms";
+import {
+  useGithubJsonForm,
+  useGithubMarkdownForm,
+  useGithubToolbarPlugins,
+} from "react-tinacms-github";
 
-
-import ReactMarkdown from 'react-markdown'
-import { InlineWysiwyg } from 'react-tinacms-editor'
+import Markdown from "react-markdown";
+import { InlineWysiwyg } from "react-tinacms-editor";
 import { InlineForm, InlineText } from "react-tinacms-inline";
+import useSWR from "swr";
 
-export default function Home({ file }) {
- const cms = useCMS()
- const formOptions = {
-    label: 'Home Page',
-    fields: [{ name: 'title', component: 'text' }],
+export default function Home({ preview, file }) {
+  const cms = useCMS();
+  const [state, setState] = useState({});
+  const [data, form] = useGithubMarkdownForm(file);
+  if (!preview && !state.data) {
+    const url =
+      "https://x68jj3oe7e.execute-api.eu-west-2.amazonaws.com/test/gitsynctest/README.md";
+    const head = { "x-api-key": "0fQZGotbb72kCoDBJuDxI2h86cPdybzs4zmcU4hz" };
+
+    const fetcher = fetch(url, { method: "GET", headers: head });
+    console.log("in");
+    fetcher
+      .then((x) => x.text())
+      .then((y) => {
+        /* setState({ data: y }); */
+        data.markdownBody = y;
+        console.log(data);
+      });
   }
- const [data, form] = useGithubJsonForm(file, formOptions)
- usePlugin(form)
-useGithubToolbarPlugins()
+  /* if (preview && !state.data) { */
+  /* console.log("it"); */
+  /* setState({ data: file.data.markdownBody }); */
+  /* } */
+
+  /* const formOptions = { */
+  /* label: "Home Page", */
+  /* fields: [{ name: "markdownBody", component: "markdown" }], */
+  /* }; */
+  usePlugin(form);
+  useGithubToolbarPlugins();
+  console.log(data);
 
   return (
     <div className={styles.container}>
@@ -30,44 +61,33 @@ useGithubToolbarPlugins()
       </Head>
 
       <main className={styles.main}>
-	<h1>	
-
-    <InlineForm form={form}>
-      <InlineWysiwyg name="body" format="markdown">
-	<ReactMarkdown>{data.body}</ReactMarkdown>
-      </InlineWysiwyg>
-    </InlineForm>
-
-
-	
-
+        <h1>
+          <InlineForm form={form}>
+            <InlineWysiwyg name="markdownBody" format="markdown">
+              <Markdown>{data.markdownBody}</Markdown>
+            </InlineWysiwyg>
+          </InlineForm>
         </h1>
-	
       </main>
     </div>
-  )
+  );
 }
-export async function getStaticProps({
- preview,
- previewData,
-})
-{
- if (preview) {
-   return getGithubPreviewProps({
-     ...previewData,
-     fileRelativePath: 'content/home.json',
-     parse: parseJson,
-   })
- }
- return {
-   props: {
-     sourceProvider: null,
-     error: null,
-     preview: false,
-     file: {
-       fileRelativePath: 'content/home.json',
-       data: (await import('../content/home.json')).default,
-     },
-   },
- }
+export async function getStaticProps({ preview, previewData }) {
+  if (preview) {
+    return getGithubPreviewProps({
+      ...previewData,
+      fileRelativePath: "content/new.md",
+      parse: parseMarkdown,
+    });
+  }
+  return {
+    props: {
+      file: {
+        data: {
+          /* frontmatter: { title: "[title placeholder]" }, */
+          markdownBody: "[text]",
+        },
+      },
+    },
+  };
 }
