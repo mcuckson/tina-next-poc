@@ -41,78 +41,38 @@ const f = {
 
 const myForm = (preview, fileList) => {
   /* const [data, setData] = useState({}); */
-  console.log(fileList);
+  /* console.log(fileList); */
   const formConfig = {
     id: "myForm",
     fields: fileList,
-    loadInitialValues() {
+    loadInitialValues: async () => {
       if (preview) {
-        return new Promise(function (resolve, reject) {
-          const x = { bb: "bbb" };
-          resolve(x);
-        });
+        async function y() {
+          return { first: "bbb", second: "rsats" };
+        }
+        return await y();
+        /* return new Promise(function (resolve, reject) { */
+        /* <!--  --> */
+        /* const x = { first: "bbb", second: "rsats" }; */
+        /* resolve(x); */
+
+        /* }); */
       }
-      const url = `http://localhost:5001/static?url=first}`;
-      return fetch(url)
-        .then((response) => response.text())
-        .then((res) => {
-          /* setData(res); */
-          return { bb: res };
-        });
+      async function x() {
+        let arr = {};
+        for (const item of fileList) {
+          const resp = await fetch(item.file.staticContentUrl);
+          const txt = await resp.text();
+          arr[item.file.name] = txt;
+        }
+        return arr;
+      }
+      return await x();
     },
     onSubmit: async () => {},
   };
   return useForm(formConfig);
 };
-
-const useGithubMultiFileForm = (file, options) => {
-  const githubFile = useGithubFile({
-    path: file.fileRelativePath,
-    serialize: toMarkdownString,
-  });
-
-  const [formData, form] = useForm({
-    id: file.fileRelativePath,
-    label: options.label || file.fileRelativePath,
-    initialValues: file.data,
-    loadInitialValues: async () => {
-      console.log(file);
-      if (options.preview) return file.data;
-      const url = `http://localhost:5001/static?url=first}`;
-      const head = { "x-api-key": "0fQZGotbb72kCoDBJuDxI2h86cPdybzs4zmcU4hz" };
-      const resp = await fetch(url, { method: "GET", headers: head });
-      const txt = await resp.text();
-      return { markdownBody: txt };
-    },
-    fields: options.fields || [],
-    actions: options.actions || [],
-    onSubmit(formData) {
-      return githubFile.commit(formData);
-    },
-  });
-
-  return [formData || file.data, form];
-};
-
-function GenericMd({ props }) {
-  const { preview, file, rurl } = props;
-  const cms = useCMS();
-  const [state, setState, loading] = useState({});
-  const [data, form] = useGithubMultiFileForm(file, { preview: props.preview }); //, { id: rurl });
-  usePlugin(form);
-  useGithubToolbarPlugins();
-  if (loading) return <div>loading</div>;
-  return (
-    <InlineForm form={form}>
-      <InlineWysiwyg name="markdownBody" format="markdown">
-        {/* <Markdown>{preview ? data.markdownBody : state.data}</Markdown> */}
-        <ReactMarkdown source={data.markdownBody} />
-        {/* <Markdown>{"rrr"}</Markdown> */}
-      </InlineWysiwyg>
-    </InlineForm>
-  );
-}
-
 export default function Home(props) {
   const cms = useCMS();
   const [data, form, loading] = myForm(props.preview, props.files);
@@ -132,28 +92,10 @@ export default function Home(props) {
       <main className={styles.main}>
         <div>
           <InlineForm form={form}>
-            <InlineWysiwyg name="bb" format="markdown">
-              {/* <Markdown>{preview ? data.markdownBody : state.data}</Markdown> */}
-              {/* <ReactMarkdown source={data.bb} /> */}
-              {/* <Markdown>{data.bb}</Markdown> */}
-              <Markdown>{data.bb}</Markdown>
+            <InlineWysiwyg name="data.first" format="markdown">
+              <Markdown>{data.first}</Markdown>
             </InlineWysiwyg>
           </InlineForm>
-
-          {/* <GenericMd
-              props={{
-              preview: props.preview,
-              file: props.files.first,
-              rurl: "first",
-              }}
-              />
-              <GenericMd
-              props={{
-              preview: props.preview,
-              file: props.files.second,
-              rurl: "second",
-              }}
-              /> */}
         </div>
         <button
           onClick={() => {
@@ -174,7 +116,6 @@ export async function getStaticProps({ preview, previewData }) {
       fileRelativePath: "content/new.md",
       parse: parseMarkdown,
     });
-    const fFixed = { first };
     const second = await getGithubPreviewProps({
       ...previewData,
       fileRelativePath: "content/other.md",
@@ -183,7 +124,10 @@ export async function getStaticProps({ preview, previewData }) {
     return {
       props: {
         preview: true,
-        files: [first.props.file, second.props.file],
+        files: [
+          { ...first.props.file, name: "first" },
+          { ...second.props.file, name: "second" },
+        ],
       },
     };
   }
@@ -194,8 +138,9 @@ export async function getStaticProps({ preview, previewData }) {
         markdownBody: "a",
         frontmatter: "a",
       },
+      name: "first",
       fileRelativePath: "a",
-      staticContentUrl: "a",
+      staticContentUrl: "http://localhost:5001/static?url=first",
     },
   };
   const stub2 = {
@@ -204,8 +149,9 @@ export async function getStaticProps({ preview, previewData }) {
         markdownBody: "b",
         frontmatter: "b",
       },
+      name: "second",
       fileRelativePath: "b",
-      staticContentUrl: "b",
+      staticContentUrl: "http://localhost:5001/static?url=second",
     },
   };
   return { props: { preview: false, files: [stub, stub2] } };
