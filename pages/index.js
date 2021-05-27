@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Head from "next/head";
 import Image from "next/image";
 import styles from "../styles/Home.module.css";
@@ -6,42 +6,76 @@ import {
   getGithubPreviewProps,
   parseJson,
   parseMarkdown,
+  getGithubFile,
 } from "next-tinacms-github";
 import { GetStaticProps } from "next";
-import { usePlugin, useCMS } from "tinacms";
+import { useForm, usePlugin, useCMS } from "tinacms";
 import {
   useGithubJsonForm,
   useGithubMarkdownForm,
   useGithubToolbarPlugins,
+  useGithubFile,
 } from "react-tinacms-github";
 
 import Markdown from "react-markdown";
+
+import { toMarkdownString } from "next-tinacms-markdown";
 import { InlineWysiwyg } from "react-tinacms-editor";
 import { InlineForm, InlineText } from "react-tinacms-inline";
 import useSWR from "swr";
 
+export function getList(rurl) {
+  const url = `http://localhost:5001/static?url=${rurl}`;
+  const head = { "x-api-key": "0fQZGotbb72kCoDBJuDxI2h86cPdybzs4zmcU4hz" };
+
+  return fetch(url, { method: "GET", headers: head }).then((data) =>
+    data.text()
+  );
+}
+
+const useGithubMultiFileForm = (file, options) => {
+  const githubFile = useGithubFile({
+    path: file.fileRelativePath,
+    serialize: toMarkdownString,
+  });
+
+  const [formData, form] = useForm({
+    id: file.fileRelativePath,
+    label: options.label || file.fileRelativePath,
+    initialValues: file.data,
+    loadInitialValues: async () => {
+      console.log(file);
+      if (options.preview) return file.data;
+      const url = `http://localhost:5001/static?url=first}`;
+      const head = { "x-api-key": "0fQZGotbb72kCoDBJuDxI2h86cPdybzs4zmcU4hz" };
+      const resp = await fetch(url, { method: "GET", headers: head });
+      const txt = await resp.text();
+      return { markdownBody: txt };
+    },
+    fields: options.fields || [],
+    actions: options.actions || [],
+    onSubmit(formData) {
+      return githubFile.commit(formData);
+    },
+  });
+
+  return [formData || file.data, form];
+};
+
 function GenericMd({ props }) {
   const { preview, file, rurl } = props;
   const cms = useCMS();
-  const [state, setState] = useState({});
-  const [data, form] = useGithubMarkdownForm(file);
-  if (!preview && !state.data) {
-    const url = `http://localhost:5001/static?url=${rurl}`;
-    const head = { "x-api-key": "0fQZGotbb72kCoDBJuDxI2h86cPdybzs4zmcU4hz" };
-
-    fetch(url, { method: "GET", headers: head })
-      .then((x) => x.text())
-      .then((y) => {
-        setState({ data: y });
-      });
-  }
+  const [state, setState, loading] = useState({});
+  const [data, form] = useGithubMultiFileForm(file, { preview: props.preview }); //, { id: rurl });
   usePlugin(form);
   useGithubToolbarPlugins();
-  console.log(file);
+  if (loading) return <div>loading</div>;
   return (
     <InlineForm form={form}>
       <InlineWysiwyg name="markdownBody" format="markdown">
-        <Markdown>{preview ? data.markdownBody : state.data}</Markdown>
+        {/* <Markdown>{preview ? data.markdownBody : state.data}</Markdown> */}
+        <Markdown>{data.markdownBody}</Markdown>
+        {/* <Markdown>{"rrr"}</Markdown> */}
       </InlineWysiwyg>
     </InlineForm>
   );
@@ -58,7 +92,7 @@ export default function Home(props) {
       </Head>
 
       <main className={styles.main}>
-        <h1>
+        <div>
           <GenericMd
             props={{
               preview: props.preview,
@@ -66,7 +100,14 @@ export default function Home(props) {
               rurl: "first",
             }}
           />
-        </h1>
+          <GenericMd
+            props={{
+              preview: props.preview,
+              file: props.files.second,
+              rurl: "second",
+            }}
+          />
+        </div>
         <button
           onClick={() => {
             cms.toggle();
