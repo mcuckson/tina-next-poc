@@ -1,4 +1,1 @@
----
-{}
----
-rstrstrsttttttt
+[object Object]
