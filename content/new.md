@@ -1,4 +1,1 @@
----
-{}
----
-gggttttttttttt ooosss iiiitttt
+gggttttttttttt ooosss iiiitttt sss
